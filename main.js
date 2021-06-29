@@ -1,4 +1,4 @@
-const { ipcMain } = require('electron'),
+const { ipcMain, Menu } = require('electron'),
   { menubar } = require('menubar'),
   { makeRpc } = require('./utils'),
   io = require('socket.io'),
@@ -7,8 +7,8 @@ const { ipcMain } = require('electron'),
       origin: "http://localhost:1234",
       methods: ["GET", "POST"]
     }
-  }, () => console.log('io ready'))
-  app = menubar({
+  }, () => console.log('io ready')),
+  bar = menubar({
     preloadWindow: true,
     browserWindow: {
       webPreferences: {
@@ -18,8 +18,21 @@ const { ipcMain } = require('electron'),
     }
   })
 
-app.on('ready', () => {
+bar.on('ready', () => {
   console.log('app ready')
+})
+
+// https://github.com/maxogden/menubar/issues/179
+bar.on('after-create-window', () => {
+  const menu = Menu.buildFromTemplate([{
+    label: 'exit',
+    click() {
+      bar.app.quit()
+    }
+  }])
+  bar.tray.on('right-click', () => {
+    bar.tray.popUpContextMenu(menu)
+  })
 })
 
 /**
