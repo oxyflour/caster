@@ -1,5 +1,4 @@
-const { ipcMain, app, BrowserWindow } = require('electron'),
-  path = require('path'),
+const { ipcMain } = require('electron'),
   { menubar } = require('menubar'),
   { makeRpc } = require('./utils'),
   io = require('socket.io'),
@@ -9,7 +8,6 @@ const { ipcMain, app, BrowserWindow } = require('electron'),
       methods: ["GET", "POST"]
     }
   }, () => console.log('io ready'))
-/*
   app = menubar({
     preloadWindow: true,
     browserWindow: {
@@ -22,16 +20,6 @@ const { ipcMain, app, BrowserWindow } = require('electron'),
 
 app.on('ready', () => {
   console.log('app ready')
-})
- */
-app.on('ready', () => {
-  const win = new BrowserWindow({
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    }
-  })
-  win.loadURL('file://' + path.join(__dirname, 'index.html'))
 })
 
 /**

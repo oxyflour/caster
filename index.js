@@ -151,32 +151,3 @@ async function bootstrap() {
 }
 
 ws.on('connect', bootstrap)
-
-/*
-async function start() {
-  const { desktopCapturer } = require('electron'),
-    sources = await desktopCapturer.getSources({ types: ['screen', 'window'] }),
-    source = sources.find(source => source.name.includes('node.js'))
-  console.log(sources)
-  if (source) {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: {
-        mandatory: {
-          chromeMediaSource: 'desktop',
-          chromeMediaSourceId: source.id,
-          minWidth: 1280,
-          maxWidth: 1280,
-          minHeight: 720,
-          maxHeight: 720
-        }
-      }
-    })
-    const video = $el('video')
-    video.srcObject = stream
-    document.body.appendChild(video)
-    video.play()
-  }
-}
-start()
- */
