@@ -22,6 +22,9 @@ bar.on('ready', () => {
   console.log('app ready')
 })
 
+// https://github.com/electron/electron/issues/23254
+bar.app.commandLine.appendSwitch('webrtc-max-cpu-consumption-percentage', '100')
+
 // https://github.com/maxogden/menubar/issues/179
 bar.on('after-create-window', () => {
   const menu = Menu.buildFromTemplate([{
