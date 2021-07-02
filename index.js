@@ -1,24 +1,23 @@
 const io = require('socket.io-client'),
   url = new URL(location.href),
   params = url.searchParams,
-  ws = io(params.get('endpoint') || 'ws://localhost:8080', { transports: ["websocket"] }),
-  { makeRpc } = require('./utils'),
-  rpc = makeRpc(ws)
+  endpoints = (params.get('endpoints') || 'ws://localhost:8080;ws://localhost:8081').split(';'),
+  { serve, connect } = require('./lib/client'),
+  { makeRpc } = require('./lib/utils')
 
+const id = Math.random().toString(16).slice(2, 10)
 document.body.style.padding = document.body.style.margin = '0'
-
-const peerOpts = {
-  /*
-  iceServers: [
-    {url:'stun:stun.xten.com'},
-  ]
-   */
-}
 
 function $el(tag, attrs = { }, children = [ ]) {
   const elem = document.createElement(tag)
   for (const [key, val] of Object.entries(attrs)) {
-    elem[key] = val
+    if (key === 'style') {
+      for (const [k, v] of Object.entries(val)) {
+        elem.style[k] = v
+      }
+    } else {
+      elem[key] = val
+    }
   }
   for (const child of children) {
     if (typeof child === 'string') {
@@ -30,124 +29,105 @@ function $el(tag, attrs = { }, children = [ ]) {
   return elem
 }
 
-rpc.serve('get-sources', async types => {
-  const { desktopCapturer } = require('electron'),
-    sources = await desktopCapturer.getSources({ types })
-  return sources.map(({ id, name, thumbnail }) => ({
-    id,
-    name,
-    thumbnail: thumbnail.toDataURL()
-  }))
-})
+/**
+ * @type { { [endpoint: string]: { rpc: any, servers: { host: string }[] } } }
+ */
+let serverList = { }
+async function update_servers() {
+  for (const item of Object.values(serverList)) {
+    item.servers = await item.rpc.call('add-server', id)
+  }
+  await show_servers()
+}
+async function show_servers() {
+  const ui = document.querySelector('#ui')
+  if (ui) {
+    document.body.removeChild(ui)
+  }
+  document.body.appendChild($el('ul', { id: 'ui' },
+    Object.entries(serverList).map(([endpoint, { servers }]) => {
+      return $el('li', { }, [
+        $el('h1', { }, [endpoint]),
+        $el('ul', { }, []),
+        ...servers.map(server => $el('li', { }, [server.host]))
+      ])
+    })))
+}
 
 /**
- * @type { Record<string, RTCPeerConnection> }
+ * @type { { [key: string]: { host: string, source: string, name: string, endpoints: string[] } }
  */
-const peers = window.peers = { }
-
-rpc.serve('ask-stream', async ({ peerId: remoteId, host, constrain }) => {
-  const peerId = Math.random().toString(16).slice(2, 10),
-    conn = peers[peerId] = new RTCPeerConnection(peerOpts)
-  conn.addEventListener('icecandidate', evt => {
-    evt.candidate && rpc.call('host-proxy', host, 'ice-candidate', { peerId: remoteId, candidate: evt.candidate })
-  })
-  const stream = await navigator.mediaDevices.getUserMedia(constrain)
-  for (const track of stream.getTracks()) {
-    conn.addTrack(track)
-  }
-  const offer = await conn.createOffer()
-  await conn.setLocalDescription(offer)
-  return { peerId, offer }
-})
-
-rpc.serve('answer-stream', async ({ peerId, answer }) => {
-  const conn = peers[peerId]
-  if (!conn) return
-  await conn.setRemoteDescription(new RTCSessionDescription(answer))
-})
-
-rpc.serve('ice-candidate', async ({ peerId, candidate }) => {
-  const conn = peers[peerId]
-  if (!conn) return
-  conn.addIceCandidate(new RTCIceCandidate(candidate))
-})
-
-async function show_server() {
-  await require('electron').ipcRenderer.invoke('check-electron')
-  const servers = await rpc.call('add-server')
-  document.body.appendChild($el('ul', { }, servers.map(({ host }) => $el('li', { }, [host]))))
-}
-
-async function show_sources() {
-  const ret = await rpc.call('host-gather', 'get-sources', ['screen', 'window'])
-  for (const { host, sources } of ret) {
-    document.body.appendChild($el('div', { }, [
-      $el('h1', { }, [`Host ${host}`]),
-      $el('ul', { }, sources.map(({ name, id: source }) => $el('li', { }, [
-        $el('a', {
-          href: '?source=' + encodeURIComponent(JSON.stringify({ source, host })),
-        }, [
-          `${name} (${source})`
-        ])
-      ])))
-    ]))
-  }
-}
-
-async function show_video({ source, host }) {
-  const peerId = Math.random().toString(16).slice(2, 10),
-    conn = peers[peerId] = new RTCPeerConnection(peerOpts)
-  conn.addEventListener('icecandidate', evt => {
-    evt.candidate && rpc.call('host-proxy', host, 'ice-candidate', { peerId: remoteId, candidate: evt.candidate })
-  })
-  conn.addEventListener('track', evt => {
-    const video = $el('video')
-    document.body.appendChild(video)
-    const [stream] = evt.streams
-    if (stream) {
-      video.srcObject = stream
-    } else if (evt.track) {
-      const stream = video.srcObject = new MediaStream()
-      stream.addTrack(evt.track)
-    }
-    video.play()
-  })
-  const constrain = {
-    audio: false,
-    video: {
-      mandatory: {
-        chromeMediaSource: 'desktop',
-        chromeMediaSourceId: source,
-        minWidth: 1280,
-        maxWidth: 1280,
-        minHeight: 720,
-        maxHeight: 720
-      }
+let clientList = { }
+async function show_clients(rpc, endpoint) {
+  const list = await rpc.call('host-gather', 'get-sources', ['screen', 'window'])
+  for (const { host, sources } of list) {
+    for (const { name, source } of sources) {
+      const key = host + '/' + source,
+        item = clientList[key] || (clientList[key] = { host, source, name, endpoints: [] })
+      item.endpoints.push(endpoint)
     }
   }
-  const { peerId: remoteId, offer } = await rpc.call('host-proxy', host, 'ask-stream', { peerId, host, constrain })
-  await conn.setRemoteDescription(new RTCSessionDescription(offer))
-  const answer = await conn.createAnswer()
-  await conn.setLocalDescription(answer)
-  await rpc.call('host-proxy', host, 'answer-stream', { peerId: remoteId, answer })
+  const ui = document.querySelector('#ui')
+  if (ui) {
+    document.body.removeChild(ui)
+  }
+  document.body.appendChild($el('ul', { id: 'ui' },
+    Object.entries(clientList).map(([key, { host, source, name, endpoints }]) => {
+      const href = '?' + [
+        'host=' + encodeURIComponent(host),
+        'source=' + encodeURIComponent(source),
+        'endpoints=' + encodeURIComponent(endpoints.join(';')),
+      ].join('&')
+      return $el('li', { }, [
+        $el('a', { href }, [`[${host}] ${name} (${source})`])
+      ])
+    })))
+}
+async function show_video(host, source, rpc) {
+  const stream = await connect(host, source, rpc),
+    video = $el('video')
+  document.body.appendChild(video)
+  video.srcObject = stream
+  video.play()
 }
 
-async function bootstrap() {
-  try {
-    await show_server()
-  } catch (err) {
-    console.warn('seems not running inside electron', err)
+for (const endpoint of endpoints) {
+  const ws = io(endpoint, { transports: ["websocket"] })
+  ws.on('connect', async () => {
+    const rpc = makeRpc(ws)
     try {
-      const source = params.get('source')
-      if (!source) {
-        await show_sources()
-      } else {
-        await show_video(JSON.parse(source))
-      }
+      await require('electron').ipcRenderer.invoke('check-electron')
+      serverList[endpoint] = { rpc, servers: await serve(rpc, id) }
+      await show_servers()
     } catch (err) {
-      console.error('connect', err)
+      console.warn(`serve ${endpoint} failed`, err)
+      try {
+        const host = params.get('host'),
+          source = params.get('source')
+        if (!host || !source) {
+          await show_clients(rpc, endpoint)
+        } else if (!window.loaded) {
+          await show_video(host, source, window.loaded = rpc)
+        }
+      } catch (err) {
+        console.error(`connect ${endpoint} failed`, err)
+      }
     }
-  }
+  })
+  ws.on('disconnect', () => {
+    serverList = delete serverList[endpoint]
+    for (const item of Object.values(clientList)) {
+      item.endpoints = item.endpoints.filter(item => item !== endpoint)
+    }
+  })
 }
 
-ws.on('connect', bootstrap)
+async function init_server_ui() {
+  await require('electron').ipcRenderer.invoke('check-electron')
+  document.body.appendChild(
+    $el('div', { style: { margin: '10px' } }, [
+      $el('button', { onclick: update_servers }, ['refresh'])
+    ])
+  )
+}
+init_server_ui()
