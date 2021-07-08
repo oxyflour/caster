@@ -43,6 +43,5 @@ ipcMain.handle('check-electron', async () => {
   return true
 })
 ws.on('connection', sock => {
-  const rpc = makeRpc(sock)
-  serve(rpc, sock)
+  serve(makeRpc(sock))
 })

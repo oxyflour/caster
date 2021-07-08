@@ -32,9 +32,9 @@ function $el(tag, attrs = { }, children = [ ]) {
 /**
  * @type { { [endpoint: string]: { rpc: any, servers: { host: string }[] } } }
  */
-let serverList = { }
+let servers = { }
 async function update_servers() {
-  for (const item of Object.values(serverList)) {
+  for (const item of Object.values(servers)) {
     item.servers = await item.rpc.call('add-server', id)
   }
   await show_servers()
@@ -45,7 +45,7 @@ async function show_servers() {
     document.body.removeChild(ui)
   }
   document.body.appendChild($el('ul', { id: 'ui' },
-    Object.entries(serverList).map(([endpoint, { servers }]) => {
+    Object.entries(servers).map(([endpoint, { servers }]) => {
       return $el('li', { }, [
         $el('h1', { }, [endpoint]),
         $el('ul', { }, []),
@@ -57,13 +57,13 @@ async function show_servers() {
 /**
  * @type { { [key: string]: { host: string, source: string, name: string, endpoints: string[] } }
  */
-let clientList = { }
+let clients = { }
 async function show_clients(rpc, endpoint) {
   const list = await rpc.call('host-gather', 'get-sources', ['screen', 'window'])
   for (const { host, sources } of list) {
     for (const { name, source } of sources) {
       const key = host + '/' + source,
-        item = clientList[key] || (clientList[key] = { host, source, name, endpoints: [] })
+        item = clients[key] || (clients[key] = { host, source, name, endpoints: [] })
       item.endpoints.push(endpoint)
     }
   }
@@ -72,7 +72,7 @@ async function show_clients(rpc, endpoint) {
     document.body.removeChild(ui)
   }
   document.body.appendChild($el('ul', { id: 'ui' },
-    Object.entries(clientList).map(([key, { host, source, name, endpoints }]) => {
+    Object.entries(clients).map(([key, { host, source, name, endpoints }]) => {
       const href = '?' + [
         'host=' + encodeURIComponent(host),
         'source=' + encodeURIComponent(source),
@@ -97,7 +97,7 @@ for (const endpoint of endpoints) {
     const rpc = makeRpc(ws)
     try {
       await require('electron').ipcRenderer.invoke('check-electron')
-      serverList[endpoint] = { rpc, servers: await serve(rpc, id) }
+      servers[endpoint] = { rpc, servers: await serve(rpc, id) }
       await show_servers()
     } catch (err) {
       console.warn(`serve ${endpoint} failed`, err)
@@ -115,8 +115,8 @@ for (const endpoint of endpoints) {
     }
   })
   ws.on('disconnect', () => {
-    serverList = delete serverList[endpoint]
-    for (const item of Object.values(clientList)) {
+    delete servers[endpoint]
+    for (const item of Object.values(clients)) {
       item.endpoints = item.endpoints.filter(item => item !== endpoint)
     }
   })
