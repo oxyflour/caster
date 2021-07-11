@@ -3,7 +3,7 @@ const { ipcMain, Menu } = require('electron'),
   { makeRpc } = require('./lib/utils'),
   { serve } = require('./lib/server')
   io = require('socket.io'),
-  ws = io(8081, {
+  ws = io(8080, {
     cors: {
       origin: "http://localhost:1234",
       methods: ["GET", "POST"]

@@ -1,11 +1,16 @@
 const io = require('socket.io-client'),
   url = new URL(location.href),
   params = url.searchParams,
-  endpoints = (params.get('endpoints') || 'ws://localhost:8080;ws://localhost:8081').split(';'),
-  { serve, connect } = require('./lib/client'),
+  endpoints = (params.get('endpoints') || 'ws://localhost:8080').split(';'),
+  { listen, connect } = require('./lib/client'),
   { makeRpc } = require('./lib/utils')
 
-const id = Math.random().toString(16).slice(2, 10)
+const id = Math.random().toString(16).slice(2, 10),
+  peerOpts = {
+    iceServers: [{
+      urls: 'stun:stun.gmx.net'
+    }]
+  }
 document.body.style.padding = document.body.style.margin = '0'
 
 function $el(tag, attrs = { }, children = [ ]) {
@@ -84,7 +89,7 @@ async function show_clients(rpc, endpoint) {
     })))
 }
 async function show_video(host, source, rpc) {
-  const stream = await connect(host, source, rpc),
+  const stream = await connect(host, source, rpc, peerOpts),
     video = $el('video')
   document.body.appendChild(video)
   video.srcObject = stream
@@ -97,7 +102,7 @@ for (const endpoint of endpoints) {
     const rpc = makeRpc(ws)
     try {
       await require('electron').ipcRenderer.invoke('check-electron')
-      servers[endpoint] = { rpc, servers: await serve(rpc, id) }
+      servers[endpoint] = { rpc, servers: await listen(rpc, id, peerOpts) }
       await show_servers()
     } catch (err) {
       console.warn(`serve ${endpoint} failed`, err)
@@ -122,6 +127,21 @@ for (const endpoint of endpoints) {
   })
 }
 
+function reload_with_endpoint() {
+  const text = document.getElementById('endpoint_input').value,
+    endpoints = text.split('\n').join(';'),
+    url = new URL(location.href)
+  url.searchParams.set('endpoints', endpoints)
+  location.href = url.toString()
+}
+async function init_common_ui() {
+  document.body.appendChild(
+    $el('div', { }, [
+      $el('textarea', { id: 'endpoint_input', value: endpoints.join('\n') }),
+      $el('button', { onclick: reload_with_endpoint }, ['reload'])
+    ])
+  )
+}
 async function init_server_ui() {
   await require('electron').ipcRenderer.invoke('check-electron')
   document.body.appendChild(
@@ -130,4 +150,5 @@ async function init_server_ui() {
     ])
   )
 }
+init_common_ui()
 init_server_ui()
