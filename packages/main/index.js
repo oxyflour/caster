@@ -35,13 +35,14 @@ function useAsync(func, deps = undefined, init = undefined) {
   return [{ loading, error, value }, () => runAsync({ })]
 }
 
-function Center({ children }) {
+function Center({ style = { }, children }) {
   return <div style={{
     width: '100%',
     height: '100%',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    ...style
   }}>{ children }</div>
 }
 
@@ -57,6 +58,54 @@ function Main() {
     <Center>Connection...</Center> :
     <List rpc={ rpc } />
 }
+
+const imageStyle = `
+.sources .img {
+  float: left;
+  clear: right;
+  cursor: pointer;
+  padding: 4px;
+  margin: 4px;
+  width: 150px;
+  height: 100px;
+  object-fit: contain;
+}
+.sources .img:hover {
+  background: #ccc;
+}
+`
+
+function Sources({ list, onClick }) {
+  return <>
+  <style>{ imageStyle }</style>
+  {
+    list.value.map(({ host, sources }) => <div key={ host } className="sources">
+      <p>Host { host }</p>
+      {
+        sources.map(({ source, name, thumbnail }) => <img
+          className="img"
+          title={ name }
+          src={ thumbnail }
+          onClick={ () => onClick({ host, source }) }
+          key={ source } />)
+      }
+    </div>)
+  }
+  </>
+}
+
+const siderStyle = `
+.sider {
+  z-index: 10;
+  position: absolute;
+  background: rgba(255, 255, 255, 0.8);
+  overflow-x: hidden;
+  height: 100%;
+}
+.sider .sources .img {
+  float: none;
+}
+`
 
 /**
  * 
@@ -75,38 +124,17 @@ function List({ rpc }) {
     <Center>{ 'ERR: ' + list.error }</Center> :
   selected ?
     <>
-      <div style={{
-        zIndex: 10,
-        position: 'absolute',
-        background: '#3f3f3f',
-        width: '100%',
-        overflow: 'hidden',
-        height: hoverOnToolbar ? 'auto' : 5,
-      }}
+      <style>{ siderStyle }</style>
+      <div className="sider" style={{ width: hoverOnToolbar ? 'auto' : 5 }}
         onMouseOver={ () => setHoverOnToolbar(true) }
         onMouseOut={ () => setHoverOnToolbar(false) }>
-        <div style={{ margin: 8 }}>
-          <button onClick={ () => setSelected(null) }>back</button>
+        <div style={{ width: 170 }}>
+          <Sources list={ list } onClick={ setSelected } />
         </div>
       </div>
       <Cast rpc={ rpc } { ...selected } />
     </> :
-    <div>
-    {
-      list.value.map(({ host, sources }) => <div key={ host }>
-        <h1>Host { host }</h1>
-        <ul>
-        {
-          sources.map(({ source, name }) => <li key={ source }>
-            <a href="#" onClick={ () => setSelected({ host, source }) }>
-              { name } ({ source })
-            </a>
-          </li>)
-        }
-        </ul>
-      </div>)
-    }
-    </div>
+    <Sources list={ list } onClick={ setSelected } />
 }
 
 /**

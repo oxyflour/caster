@@ -8,8 +8,8 @@ async function listen(rpc, host, peerOpts = { }) {
     const { desktopCapturer } = require('electron'),
       sources = await desktopCapturer.getSources({ types })
     return sources.map(({ id, name, thumbnail }) => ({
-      source: id,
       name,
+      source: id,
       thumbnail: thumbnail.toDataURL()
     }))
   })
@@ -26,6 +26,7 @@ async function listen(rpc, host, peerOpts = { }) {
         for (const track of stream.getTracks()) {
           track.stop()
         }
+        delete peers[peerId]
       }
     })
     const stream = await navigator.mediaDevices.getUserMedia(constrain)
