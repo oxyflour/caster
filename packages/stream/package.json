@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
-    "dev-client": "parcel index.html",
-    "dev-server": "electron ."
+    "dev": "electron ."
   },
   "keywords": [],
   "author": "",

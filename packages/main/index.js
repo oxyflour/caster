@@ -8,7 +8,9 @@ const React = require('react'),
 const
   peerOpts = {
     iceServers: [{
-      urls: 'stun:stun.gmx.net'
+      url: 'turn:gitlab.yff.me:3478',
+      username: 'abc',
+      credential: '123',
     }]
   }
 
@@ -49,7 +51,7 @@ function Center({ style = { }, children }) {
 function Main() {
   const [rpc, setRpc] = useState(null)
   useEffect(() => {
-    const ws = io('ws://localhost:8080', { transports: ['websocket'] })
+    const ws = io('ws://pc10.yff.me:8080', { transports: ['websocket'] })
     ws.on('connect', () => setRpc(makeRpc(ws)))
     ws.on('disconnect', () => setRpc(null))
     return () => ws.disconnect()

@@ -8,7 +8,9 @@ const io = require('socket.io-client'),
 const id = Math.random().toString(16).slice(2, 10),
   peerOpts = {
     iceServers: [{
-      urls: 'stun:stun.gmx.net'
+      url: 'turn:gitlab.yff.me:3478',
+      username: 'abc',
+      credential: '123',
     }]
   }
 document.body.style.padding = document.body.style.margin = '0'
