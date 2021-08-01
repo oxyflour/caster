@@ -1,0 +1,34 @@
+{
+  "name": "caster-stream",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "dev-client": "parcel index.html",
+    "dev-server": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/socket.io-client": "^3.0.0",
+    "electron": "^13.1.4"
+  },
+  "dependencies": {
+    "menubar": "^9.0.4",
+    "parcel": "^2.0.0-beta.2",
+    "socket.io": "^4.1.2",
+    "socket.io-client": "^4.1.2"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oxyflour/caster.git"
+  },
+  "bugs": {
+    "url": "https://github.com/oxyflour/caster/issues"
+  },
+  "homepage": "https://github.com/oxyflour/caster#readme",
+  "description": ""
+}

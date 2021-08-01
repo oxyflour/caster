@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      body.client-mode .hide-server-mode {
+        display: none;
+      }
+      .config > textarea {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="config">
+      <textarea id="endpoint_input" placeholder="endpoints">
+      </textarea>
+      <button id="apply_config">apply</button>
+    </div>
+    <div class="hide-server-mode">
+      <button id="update_servers">update servers</button>
+    </div>
+    <script src="./www.js"></script>
+  </body>
+</html>

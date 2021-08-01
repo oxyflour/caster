@@ -102,10 +102,11 @@ for (const endpoint of endpoints) {
     const rpc = makeRpc(ws)
     try {
       await require('electron').ipcRenderer.invoke('check-electron')
+      document.body.classList.add('server-mode')
       servers[endpoint] = { rpc, servers: await listen(rpc, id, peerOpts) }
       await show_servers()
     } catch (err) {
-      console.warn(`serve ${endpoint} failed`, err)
+      document.body.classList.add('client-mode')
       try {
         const host = params.get('host'),
           source = params.get('source')
@@ -134,21 +135,7 @@ function reload_with_endpoint() {
   url.searchParams.set('endpoints', endpoints)
   location.href = url.toString()
 }
-async function init_common_ui() {
-  document.body.appendChild(
-    $el('div', { }, [
-      $el('textarea', { id: 'endpoint_input', value: endpoints.join('\n') }),
-      $el('button', { onclick: reload_with_endpoint }, ['reload'])
-    ])
-  )
-}
-async function init_server_ui() {
-  await require('electron').ipcRenderer.invoke('check-electron')
-  document.body.appendChild(
-    $el('div', { style: { margin: '10px' } }, [
-      $el('button', { onclick: update_servers }, ['refresh'])
-    ])
-  )
-}
-init_common_ui()
-init_server_ui()
+
+document.getElementById('endpoint_input').value = endpoints.join('\n')
+document.getElementById('apply_config').onclick = reload_with_endpoint
+document.getElementById('update_servers').onclick = update_servers

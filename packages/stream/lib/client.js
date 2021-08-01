@@ -52,7 +52,7 @@ async function listen(rpc, host, peerOpts = { }) {
   return await rpc.call('add-server', host)
 }
 
-async function connect(host, source, rpc, peerOpts = { }) {
+async function connect(host, source, rpc, peerOpts = { }, videoOpts = { }) {
   const peerId = Math.random().toString(16).slice(2, 10),
     conn = peers[peerId] = new RTCPeerConnection(peerOpts)
   conn.addEventListener('icecandidate', evt => {
@@ -80,7 +80,8 @@ async function connect(host, source, rpc, peerOpts = { }) {
         minWidth: 1280,
         maxWidth: 1280,
         minHeight: 720,
-        maxHeight: 720
+        maxHeight: 720,
+        ...videoOpts
       }
     }
   }
